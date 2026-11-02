@@ -1,0 +1,108 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 640" width="960" height="640" role="img" aria-label="Wiring diagram from Basys 3 Pmod JB to the TB6612FNG module, the motor and its encoder, and the 12 V supply">
+<rect x="0" y="0" width="960" height="640" fill="#ffffff"/>
+        <style>
+          .bx { fill: #eef1f4; stroke: #b9c2cb; stroke-width: 1.5; }
+          .t  { fill: #17202a; font-family: 'IBM Plex Mono', Consolas, 'DejaVu Sans Mono', monospace; font-size: 13px; }
+          .tm { fill: #5b6672; font-family: 'IBM Plex Mono', Consolas, 'DejaVu Sans Mono', monospace; font-size: 11px; }
+          .h  { fill: #17202a; font-family: 'IBM Plex Sans Condensed', 'Arial Narrow', Arial, sans-serif; font-size: 17px; font-weight: 700; }
+          .hs { fill: #5b6672; font-family: 'IBM Plex Sans', 'Segoe UI', Arial, sans-serif; font-size: 12px; }
+          .w  { fill: none; stroke-width: 3; stroke-linecap: round; }
+          .sig { stroke: #1f5fd1; } .enc { stroke: #0b8a7c; } .v33 { stroke: #c46a00; }
+          .gnd { stroke: #3c4650; } .v12 { stroke: #d22f2f; stroke-dasharray: 9 6; } .mot { stroke: #7b3fd0; }
+          .dot { stroke: none; }
+        </style>
+
+        <!-- Basys 3 -->
+        <rect class="bx" x="30" y="70" width="200" height="490" rx="6"/>
+        <text class="h" x="45" y="56">Basys 3 · Pmod JB</text>
+        <text class="t" x="215" y="124" text-anchor="end">JB1  M1_IN1</text>
+        <text class="t" x="215" y="154" text-anchor="end">JB2  M1_IN2</text>
+        <text class="t" x="215" y="204" text-anchor="end">JB5  GND</text>
+        <text class="t" x="215" y="244" text-anchor="end">JB6  3V3</text>
+        <text class="t" x="215" y="434" text-anchor="end">JB7  ENC1_A</text>
+        <text class="t" x="215" y="464" text-anchor="end">JB8  ENC1_B</text>
+        <text class="t" x="215" y="494" text-anchor="end">JB11 GND</text>
+        <text class="t" x="215" y="524" text-anchor="end">JB12 3V3</text>
+        <text class="tm" x="45" y="92">FPGA pins A14 A16 A15 A17</text>
+        <text class="tm" x="45" y="545">JB3 JB4 JB9 JB10: motor 2 (unused)</text>
+
+        <!-- TB6612 -->
+        <rect class="bx" x="420" y="90" width="190" height="270" rx="6"/>
+        <text class="h" x="430" y="76">TB6612FNG module</text>
+        <text class="t" x="432" y="124">AIN1</text>
+        <text class="t" x="432" y="154">AIN2</text>
+        <text class="t" x="432" y="204">GND</text>
+        <text class="t" x="432" y="244">VCC</text>
+        <text class="t" x="432" y="274">STBY</text>
+        <text class="t" x="432" y="304">PWMA</text>
+        <text class="t" x="432" y="334">PWMB</text>
+        <text class="t" x="598" y="134" text-anchor="end">VM</text>
+        <text class="t" x="598" y="174" text-anchor="end">GND</text>
+        <text class="t" x="598" y="254" text-anchor="end">AO1</text>
+        <text class="t" x="598" y="294" text-anchor="end">AO2</text>
+        <text class="tm" x="515" y="215" text-anchor="middle">logic side</text>
+        <text class="tm" x="515" y="229" text-anchor="middle">← | →</text>
+        <text class="tm" x="515" y="243" text-anchor="middle">power side</text>
+
+        <!-- 12 V supply -->
+        <rect class="bx" x="760" y="90" width="170" height="110" rx="6"/>
+        <text class="h" x="770" y="76">12 V supply</text>
+        <text class="t" x="772" y="134">+ 12 V</text>
+        <text class="t" x="772" y="174">− (0 V)</text>
+        <text class="hs" x="772" y="192">stage B only</text>
+
+        <!-- Motor + encoder -->
+        <rect class="bx" x="760" y="225" width="170" height="90" rx="6"/>
+        <text class="h" x="770" y="246" dy="-28">JGB37-520 motor</text>
+        <text class="t" x="772" y="254">Motor +  (M1)</text>
+        <text class="t" x="772" y="294">Motor −  (M2)</text>
+        <rect class="bx" x="760" y="405" width="170" height="135" rx="6"/>
+        <text class="h" x="770" y="395">Encoder (same cable)</text>
+        <text class="t" x="772" y="434">A  (C1)</text>
+        <text class="t" x="772" y="464">B  (C2)</text>
+        <text class="t" x="772" y="494">GND</text>
+        <text class="t" x="772" y="524">VCC  → 3.3 V only</text>
+
+        <!-- wires: JB to TB6612 -->
+        <path class="w sig" d="M230 120 H420"/>
+        <path class="w sig" d="M230 150 H420"/>
+        <path class="w gnd" d="M230 200 H420"/>
+        <path class="w v33" d="M230 240 H420"/>
+        <path class="w v33" d="M390 240 V330 M390 270 H420 M390 300 H420 M390 330 H420"/>
+        <circle class="dot" cx="390" cy="240" r="5" fill="#c46a00"/>
+        <circle class="dot" cx="390" cy="270" r="4" fill="#c46a00"/>
+        <circle class="dot" cx="390" cy="300" r="4" fill="#c46a00"/>
+        <text class="tm" x="320" y="290" text-anchor="middle">tie STBY,</text>
+        <text class="tm" x="320" y="304" text-anchor="middle">PWMA, PWMB</text>
+        <text class="tm" x="320" y="318" text-anchor="middle">to 3.3 V</text>
+
+        <!-- encoder wires, passing under the module -->
+        <path class="w enc" d="M230 430 H760"/>
+        <path class="w enc" d="M230 460 H760"/>
+        <path class="w gnd" d="M230 490 H760"/>
+        <path class="w v33" d="M230 520 H760"/>
+
+        <!-- power side -->
+        <path class="w v12" d="M610 130 H760"/>
+        <path class="w gnd" d="M610 170 H760" stroke-dasharray="9 6"/>
+        <path class="w mot" d="M610 250 H760"/>
+        <path class="w mot" d="M610 290 H760"/>
+        <!-- bulk cap -->
+        <path d="M660 130 V142 M648 142 H672 M648 150 H672 M660 150 V170" stroke="#17202a" stroke-width="2" fill="none"/>
+        <circle class="dot" cx="660" cy="130" r="4" fill="#d22f2f"/>
+        <circle class="dot" cx="660" cy="170" r="4" fill="#3c4650"/>
+        <text class="tm" x="680" y="150">100–470 µF</text>
+        <text class="tm" x="680" y="163">≥ 25 V</text>
+
+        <!-- pin dots -->
+        <g fill="#17202a">
+          <circle cx="230" cy="120" r="3.5"/><circle cx="230" cy="150" r="3.5"/><circle cx="230" cy="200" r="3.5"/><circle cx="230" cy="240" r="3.5"/>
+          <circle cx="230" cy="430" r="3.5"/><circle cx="230" cy="460" r="3.5"/><circle cx="230" cy="490" r="3.5"/><circle cx="230" cy="520" r="3.5"/>
+          <circle cx="420" cy="120" r="3.5"/><circle cx="420" cy="150" r="3.5"/><circle cx="420" cy="200" r="3.5"/><circle cx="420" cy="240" r="3.5"/>
+          <circle cx="420" cy="270" r="3.5"/><circle cx="420" cy="300" r="3.5"/><circle cx="420" cy="330" r="3.5"/>
+          <circle cx="610" cy="130" r="3.5"/><circle cx="610" cy="170" r="3.5"/><circle cx="610" cy="250" r="3.5"/><circle cx="610" cy="290" r="3.5"/>
+          <circle cx="760" cy="130" r="3.5"/><circle cx="760" cy="170" r="3.5"/><circle cx="760" cy="250" r="3.5"/><circle cx="760" cy="290" r="3.5"/>
+          <circle cx="760" cy="430" r="3.5"/><circle cx="760" cy="460" r="3.5"/><circle cx="760" cy="490" r="3.5"/><circle cx="760" cy="520" r="3.5"/>
+        </g>
+      <g><path d="M30 615 H58" stroke="#1f5fd1" stroke-width="4"/><text class="hs" x="66" y="619">Direction signals</text><path d="M180 615 H208" stroke="#0b8a7c" stroke-width="4"/><text class="hs" x="216" y="619">Encoder signals</text><path d="M330 615 H358" stroke="#c46a00" stroke-width="4"/><text class="hs" x="366" y="619">3.3 V</text><path d="M480 615 H508" stroke="#3c4650" stroke-width="4"/><text class="hs" x="516" y="619">Ground</text><path d="M630 615 H658" stroke="#7b3fd0" stroke-width="4"/><text class="hs" x="666" y="619">Motor leads</text><path d="M780 615 H808" stroke="#d22f2f" stroke-width="4" stroke-dasharray="9 6"/><text class="hs" x="816" y="619">12 V (stage B)</text></g>
+</svg>

@@ -61,6 +61,13 @@ JA6 and JA12 (VCC) stay unconnected; each board runs from its own USB.
 
 ## Wiring (Pmod JB ↔ TB6612FNG and encoders, map v5)
 
+![Motor 1 wiring: Basys 3 Pmod JB to the TB6612FNG, the JGB37-520 motor and encoder, and the 12 V supply](docs/wiring_m3.svg)
+
+Go by the labels on your TB6612 module and encoder board: pin order varies
+between sellers. Wire everything except the 12 V supply first and check the
+link and the encoder before connecting it. A 100–470 µF capacitor (≥ 25 V)
+across VM and GND at the module absorbs the motor's switching spikes.
+
 | Signal | Basys 3 | Artix-7 | Goes to |
 |---|---|---|---|
 | M1_IN1 | JB1 | A14 | TB6612 AIN1 |
@@ -93,6 +100,7 @@ prebuilt/                   FPGA_Link.bin/.hex/.elf built from firmware/
 scripts/                    Vivado build/program, STM32 flash, serial check
 test/                       builds the STM32 driver on a PC for the replay test
 tools/                      generated register constants for PC-side Python and MATLAB
+docs/                       wiring diagrams
 Makefile                    make test / make regs / make firmware
 ```
 
