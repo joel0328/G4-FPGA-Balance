@@ -4,7 +4,7 @@
 #   rtl/fpga_regs.vh                          Verilog localparams (included by the RTL)
 #   firmware/FPGA_Link/Core/Inc/fpga_regs.h   C register map
 #   tools/fpga_regs.py, tools/fpga_regs.m     PC-side constants (Python, MATLAB)
-#   README.md                                 register table between the regmap markers
+#   docs/register-map.md                      register table between the regmap markers
 #
 # After editing: `make regs`, then update the RTL logic and the tests. `make test`
 # fails while any generated file is stale. Bump [map].version on any incompatible
@@ -12,7 +12,7 @@
 #
 # [const]: extra named constants, emitted as MAP-level values (C FPGA_<name>).
 #
-# Registers: name, addr, access (RO, RW, W, RW1C), desc (README text), optional
+# Registers: name, addr, access (RO, RW, W, RW1C), desc (table text), optional
 # reset, words (a block of N consecutive words), fields.
 # Fields: name, bits ("n" or "msb:lsb"), optional desc. Each field becomes a C
 # macro FPGA_<prefix>_<name>: (1u << n) for one bit, the in-place mask otherwise.

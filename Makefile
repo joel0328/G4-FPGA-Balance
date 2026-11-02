@@ -1,4 +1,4 @@
-# fpga_link - top-level tasks
+# G4-FPGA-Balance - top-level tasks
 #
 #   make sim        RTL testbench (Icarus Verilog)          -> must print PASS
 #   make replay     STM32 driver -> RTL -> driver round trip -> must print PASS
