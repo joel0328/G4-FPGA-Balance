@@ -20,6 +20,35 @@ jobs:
       - name: make test
         run: make test
 
+  model:
+    name: Balancer simulator
+    runs-on: ubuntu-24.04
+    defaults:
+      run:
+        working-directory: model
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: model/requirements.txt
+      - name: Install
+        run: pip install -r requirements.txt
+      - name: Self-checks
+        run: python check_model.py
+      - name: Balance and push scenario
+        run: python sim.py
+      - name: Design sweep
+        run: python sweep.py --vary battery_height=0.04,0.10,0.16 --vary wheel_radius=0.0325,0.04,0.05
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: balancer-sim
+          path: |
+            model/out/run.png
+            model/out/sweep.csv
+
   firmware:
     name: Firmware build
     runs-on: ubuntu-24.04

@@ -28,6 +28,10 @@ Each script ends with a `RESULT:` line. `sim.py` writes `out/run.png` (pitch,
 position, duty, motor current); `sweep.py` writes `out/sweep.csv`. `--set`
 overrides any field of `Body`, `Motor`, `Config` or `Sensors` by name.
 
+CI runs `check_model.py`, the default `sim.py` scenario and the sweep above on
+every push; the plot and sweep table are attached to each run as the
+`balancer-sim` artifact.
+
 ## Files
 
 | File | Contents |

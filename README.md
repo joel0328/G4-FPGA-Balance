@@ -41,8 +41,8 @@ STM32CubeProgrammer 2.22.0) unless marked otherwise. Tags mark the gates.
 | **[Safety layer](docs/safety.md)** (map v4) | Arming, kick watchdog, latched faults WDT/LINK/ESTOP/ARM_LOST, per-tick snapshot. Testbench 494 checks incl. a per-clock armed-vs-fault invariant; 9 injected RTL bugs all caught. On hardware: each fault cause tripped and cut the outputs; 30-minute armed soak: 1.8M steps, 0 errors, no false trips. Vivado WNS 1.905 ns. |
 | **[Motors](docs/motors.md)** (map v5, simulation only) | Two 20 kHz sign-magnitude H-bridge channels gated by ARMED, with a duty clamp, and two x4 quadrature decoders in the snapshot. Testbench 595 checks; 21 injected RTL bugs all caught. Vivado WNS 1.148 ns. Hardware gate in progress: TB6612FNG + JGB37-520. |
 
-CI (GitHub Actions) runs the RTL testbench, the driver↔RTL replay and the
-firmware build on every push.
+CI (GitHub Actions) runs the RTL testbench, the driver↔RTL replay, the
+firmware build and the balancer simulator's checks on every push.
 
 ### Roadmap
 
