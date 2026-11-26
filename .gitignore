@@ -6,6 +6,7 @@ firmware/FPGA_Link/Release/
 __pycache__/
 model/.venv/
 model/out/
+MUJOCO_LOG.TXT
 .Xil/
 *.jou
 *.log
