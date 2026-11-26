@@ -49,7 +49,7 @@ firmware build on every push.
 1. Motors on hardware: spin both ways, measure encoder counts per revolution, 30-minute armed soak.
 2. MATLAB tooling: log the per-tick snapshot, identify the motor model.
 3. IMU on the FPGA, latched into the snapshot with the encoders.
-4. Balancer: two motors on a chassis, a controller designed in MATLAB.
+4. Balancer: two motors on a chassis, a controller designed in MATLAB and tried first in the [simulator](model/README.md).
 5. Custom board (KiCad) with the G4, the FPGA and the motor drivers.
 
 ## Quick start
@@ -83,6 +83,7 @@ solid = init error).
 | [Safety layer](docs/safety.md) | Arming, watchdog, faults, snapshot |
 | [Motors](docs/motors.md) | PWM, encoders, motor hardware, console commands |
 | [Firmware](firmware/FPGA_Link/README.md) | Building and importing the STM32CubeIDE project |
+| [Simulator](model/README.md) | MuJoCo model of the balancer for chassis design and controller tuning |
 
 ## Repository layout
 
@@ -95,6 +96,7 @@ scripts/                    Vivado build/program, STM32 flash, serial check, reg
 test/                       builds the STM32 driver on a PC for the replay test
 tools/                      generated register constants for PC-side Python and MATLAB
 docs/                       documentation and wiring diagrams
+model/                      MuJoCo balancer simulator (Python): body design, motor model, LQR
 Makefile                    make test / make regs / make firmware
 ```
 

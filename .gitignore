@@ -4,6 +4,8 @@ firmware/FPGA_Link/Debug/
 firmware/FPGA_Link/Release/
 *.su
 __pycache__/
+model/.venv/
+model/out/
 .Xil/
 *.jou
 *.log
