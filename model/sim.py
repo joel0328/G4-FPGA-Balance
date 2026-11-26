@@ -21,7 +21,7 @@ import mujoco
 import numpy as np
 
 from controller import Config, Controller, design_lqr
-from motor import Motor
+from motor import Gearbox, Motor
 from robot import Body, build_xml, plant
 
 OUT = Path(__file__).resolve().parent / "out"
@@ -72,12 +72,15 @@ def pitch_of(data, bid):
 
 
 def run(body=None, motor=None, cfg=None, sc=None, sens=None, view=False, quiet=False, plot=True,
-        lqr_kw=None):
+        lqr_kw=None, design=None):
+    """design = (Body, Motor) the controller is designed for; default: the simulated ones.
+    montecarlo.py passes the nominal robot here while simulating a randomized one."""
     body, motor = body or Body(), motor or Motor()
     cfg, sc, sens = cfg or Config(), sc or Scenario(), sens or Sensors()
     model, data = make(body, motor)
-    p = plant(model)
-    K, _, _, poles = design_lqr(p, motor, cfg.dt, **(lqr_kw or {}))
+    d_body, d_motor = design or (body, motor)
+    p = plant(make(d_body, d_motor)[0], d_motor)
+    K, _, _, poles = design_lqr(p, d_motor, cfg.dt, **(lqr_kw or {}))
     ctrl = Controller(K, p["r"], cfg, gyro_bias=sens.gyro_bias_cal)
     rng = np.random.default_rng(sc.seed)
     settle(model, data, sc.tilt_deg)
@@ -85,6 +88,10 @@ def run(body=None, motor=None, cfg=None, sc=None, sens=None, view=False, quiet=F
     ch = model.body("chassis").id
     adr = {n: model.sensor_adr[model.sensor(n).id] for n in ("gyro", "accel", "enc_l", "enc_r")}
     dof_l, dof_r = model.joint("wheel_l").dofadr[0], model.joint("wheel_r").dofadr[0]
+    qa_l, qa_r = model.joint("wheel_l").qposadr[0], model.joint("wheel_r").qposadr[0]
+    gears = None
+    if motor.backlash_deg > 0:
+        gears = (Gearbox(motor, data.qpos[qa_l]), Gearbox(motor, data.qpos[qa_r]))
     sub = round(cfg.dt / model.opt.timestep)
     ticks = round(sc.seconds / cfg.dt)
     queue = [(0.0, 0.0)] * sc.delay_ticks
@@ -92,7 +99,7 @@ def run(body=None, motor=None, cfg=None, sc=None, sens=None, view=False, quiet=F
 
     if not quiet:
         print(f"body: M {p['M']:.3f} kg, CoM {p['l'] * 100:.1f} cm above axle, wheel r {p['r'] * 1000:.1f} mm")
-        print(f"motor: {motor.summary()}, mode {motor.mode}")
+        print(f"motor: {motor.summary()}, backlash {motor.backlash_deg:g} deg, mode {motor.mode}")
         print(f"LQR K = [{', '.join(f'{k:.3g}' for k in K)}], slowest pole |z| {max(abs(poles)):.4f}")
 
     log = {k: np.zeros(ticks) for k in ("t", "pitch", "pitch_est", "x", "duty_l", "duty_r", "i_l", "i_r")}
@@ -111,8 +118,10 @@ def run(body=None, motor=None, cfg=None, sc=None, sens=None, view=False, quiet=F
     for k in range(ticks):
         t = k * cfg.dt
         sd = data.sensordata
-        enc_l = math.floor(sd[adr["enc_l"]] / (2 * math.pi) * cfg.cpr)
-        enc_r = math.floor(sd[adr["enc_r"]] / (2 * math.pi) * cfg.cpr)
+        # the encoder is on the motor shaft: with gearbox play it sees the rotor, not the wheel
+        ang_l, ang_r = (gears[0].theta, gears[1].theta) if gears else (sd[adr["enc_l"]], sd[adr["enc_r"]])
+        enc_l = math.floor(ang_l / (2 * math.pi) * cfg.cpr)
+        enc_r = math.floor(ang_r / (2 * math.pi) * cfg.cpr)
         gyro_y = sd[adr["gyro"] + 1] + sens.gyro_bias + rng.normal(0, sens.gyro_noise)
         ax = sd[adr["accel"]] + rng.normal(0, sens.acc_noise)
         az = sd[adr["accel"] + 2] + rng.normal(0, sens.acc_noise)
@@ -131,12 +140,18 @@ def run(body=None, motor=None, cfg=None, sc=None, sens=None, view=False, quiet=F
         data.xfrc_applied[ch] = [force, 0, 0, 0, lever * force, 0]
 
         for _ in range(sub):
-            tl, il = motor.torque(duty[0], data.qvel[dof_l])
-            tr, ir = motor.torque(duty[1], data.qvel[dof_r])
+            if gears:
+                tl, il = gears[0].step(duty[0], data.qpos[qa_l], data.qvel[dof_l], model.opt.timestep)
+                tr, ir = gears[1].step(duty[1], data.qpos[qa_r], data.qvel[dof_r], model.opt.timestep)
+            else:
+                tl, il = motor.torque(duty[0], data.qvel[dof_l])
+                tr, ir = motor.torque(duty[1], data.qvel[dof_r])
             data.ctrl[:] = (tl, tr)
             mujoco.mj_step(model, data)
             cur = (il, ir)
 
+        if data.warning[mujoco.mjtWarning.mjWARN_BADQACC].number:
+            raise FloatingPointError(f"simulation went unstable at {t:.3f} s")
         pitch = pitch_of(data, ch)
         for key, v in (("t", t), ("pitch", pitch), ("pitch_est", ctrl.pitch), ("x", data.qpos[0]),
                        ("duty_l", duty[0]), ("duty_r", duty[1]), ("i_l", cur[0]), ("i_r", cur[1])):

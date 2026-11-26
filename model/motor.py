@@ -25,6 +25,10 @@ class Motor:
     i_noload: float = 0.12           # A at vbus (MEASURE) -> gearbox friction
     efficiency: float = 0.65         # gearbox (assumed)
     rotor_inertia: float = 1.0e-6    # kg m^2, motor rotor (assumed)
+    backlash_deg: float = 1.5        # total play at the output shaft (MEASURE); 0 = rigid gearbox
+    gear_stiffness: float = 30.0     # N m/rad at the output once the teeth engage (assumed)
+    gear_damping: float = 0.03       # N m s/rad while engaged (assumed); above ~0.09 the
+                                     # explicit coupling to the light wheel goes unstable at 0.5 ms
     mode: str = "coast"
 
     @property
@@ -66,3 +70,36 @@ class Motor:
         return (f"R {self.R:.2f} ohm, ke {self.ke * 1000:.2f} mV s/rad, "
                 f"stall {self.efficiency * self.gear * self.ke * self.i_stall:.2f} N m, "
                 f"friction {self.friction:.3f} N m, rotor at output {self.armature * 1000:.2f} g m^2")
+
+
+class Gearbox:
+    """The rotor side of a gearmotor with backlash, integrated outside MuJoCo.
+
+    The rotor (inertia reflected to the output) turns relative to the motor body;
+    the wheel only feels it once the play is taken up, through a stiff, damped
+    tooth contact. Angles are at the output shaft, relative to the motor body.
+    step() returns the torque the gearbox puts on the wheel joint (the reaction
+    on the body comes from MuJoCo's actuator) and the winding current.
+    """
+
+    def __init__(self, motor: Motor, wheel_angle=0.0, substeps=8):
+        self.m = motor
+        self.half = math.radians(motor.backlash_deg) / 2
+        self.theta = wheel_angle                # start centred in the play
+        self.omega = 0.0
+        self.n = substeps
+
+    def step(self, duty, wheel_angle, wheel_speed, dt):
+        m, h = self.m, dt / self.n
+        tau_sum = cur_sum = 0.0
+        for _ in range(self.n):
+            tau_m, i = m.torque(duty, self.omega)
+            d = self.theta - wheel_angle
+            e = d - self.half if d > self.half else d + self.half if d < -self.half else 0.0
+            tau_c = m.gear_stiffness * e + (m.gear_damping * (self.omega - wheel_speed) if e else 0.0)
+            self.omega += h * (tau_m - tau_c) / m.armature
+            self.theta += h * self.omega
+            wheel_angle += h * wheel_speed
+            tau_sum += tau_c
+            cur_sum += i
+        return tau_sum / self.n, cur_sum / self.n

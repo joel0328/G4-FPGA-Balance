@@ -27,10 +27,10 @@ def check(name, ok, detail):
         failures.append(name)
 
 
-motor = Motor(mode="linear")
+motor = Motor(mode="linear", backlash_deg=0)        # rigid gearbox: what the linear model assumes
 model, data = make(Body(), motor)
 model.dof_frictionloss[:] = 0
-p = plant(model)
+p = plant(model, motor)
 A, B = linear_model(p, motor)
 for _ in range(200):
     mujoco.mj_step(model, data)

@@ -25,18 +25,21 @@ python sim.py                   # 10 s: start tilted 3°, push 1 N forward at 1 
 python sim.py --view            # same in the 3D viewer, real time; space = push, B = push back
 python sim.py --push 1.5 --duty-limit 1.0 --set battery_height=0.16
 python sweep.py --vary battery_height=0.04,0.10,0.16 --vary wheel_radius=0.0325,0.04,0.05
+python montecarlo.py            # 200 randomized robots against the nominal controller
+python montecarlo.py --n 500 --set duty_limit=1.0 --push 1.5
 python legged_sim.py            # wheel-legged robot through its course (see below)
 python legged_sim.py --no-roll  # same with the legs not levelling the body
 python legged_sim.py --view     # drive it: arrows, PgUp/PgDn height, S stop, space/B push
 ```
 
 Each script ends with a `RESULT:` line. `sim.py` writes `out/run.png` (pitch,
-position, duty, motor current); `sweep.py` writes `out/sweep.csv`. `--set`
+position, duty, motor current); `sweep.py` writes `out/sweep.csv`,
+`montecarlo.py` writes `out/montecarlo.csv`. `--set`
 overrides any field of `Body`, `Motor`, `Config` or `Sensors` by name.
 
 CI runs `check_model.py`, the default `sim.py` scenario, the `legged_sim.py`
-course and the sweep above on
-every push; the plot and sweep table are attached to each run as the
+course, the sweep above and a 60-robot `montecarlo.py` (DUTY_LIMIT 100 %,
+1 N pushes, at least 90 % must pass) on every push; the plots and tables are attached to each run as the
 `balancer-sim` artifact.
 
 ## Files
@@ -48,6 +51,7 @@ every push; the plot and sweep table are attached to each run as the
 | `controller.py` | Linear model, LQR design (with the one-tick delay), and `Controller`: the per-tick estimator and control law, kept portable to C |
 | `sim.py` | Runs a scenario: sensor models, pushes, logging, plot, viewer |
 | `sweep.py` | Largest survivable push for each combination of one or two parameters, with the LQR redesigned for each body |
+| `montecarlo.py` | Randomized robots (masses, motor, gearbox, tyres, sensors, delay) against the controller designed for the nominal one |
 | `check_model.py` | Self-checks |
 | `legged_robot.py` | `LegBody`: the wheel-legged robot (thigh, shank, hip and knee servos, wheel at the foot), leg kinematics, balance model at any leg length |
 | `legged_controller.py` | Gain-scheduled balance, height, roll levelling and steering, per tick, portable to C |
@@ -62,12 +66,17 @@ every push; the plot and sweep table are attached to each run as the
   rotor inertia reflected through the 1:56 gearbox (bigger than the wheel's own
   inertia). In `coast` mode (the FPGA's sign-magnitude PWM) current flows only
   during the on-time, so zero duty coasts instead of braking.
-- **Sensors:** encoder counts quantised to 2464 per output revolution, gyro
+- **Gearbox backlash:** the rotor turns freely through the play (1.5° at the
+  output by default) and drives the wheel through a stiff, damped tooth contact
+  once it's taken up. The encoder is on the motor shaft, so the controller sees
+  the rotor, not the wheel. `backlash_deg=0` makes the gearbox rigid. (The
+  wheel-legged model still uses a rigid gearbox.)
+- **Sensors:** encoder counts (motor shaft) quantised to 2464 per output revolution, gyro
   noise and an imperfect bias calibration, accelerometer noise; a complementary
   filter estimates pitch.
 - **Timing:** 1 kHz control, 0.5 ms physics, one tick from sample to duty.
 
-Not modelled yet: gearbox backlash, motor inductance, IMU mounting
+Not modelled yet: motor inductance, IMU mounting
 misalignment, the battery sagging under load, and yaw manoeuvres beyond
 holding a heading.
 
@@ -75,8 +84,9 @@ holding a heading.
 
 `Motor` fields marked MEASURE in `motor.py`: stall current (sets the winding
 resistance), no-load current (gearbox friction), gear ratio and encoder counts
-per revolution. The 12 V / 178 RPM label is used as given. Rotor inertia and
-gearbox efficiency are estimates. Once the motor runs on the bench, fit them
+per revolution, gearbox backlash. The 12 V / 178 RPM label is used as given.
+Rotor inertia, gearbox efficiency, stiffness and damping are estimates.
+Backlash can be measured by holding the motor shaft and rocking the wheel. Once the motor runs on the bench, fit them
 from a duty-step response, then rerun `check_model.py` and the sweeps.
 
 ## First findings (assumed motor constants)
@@ -87,9 +97,23 @@ from a duty-step response, then rerun `check_model.py` and the sweeps.
 - Coast-mode PWM recovers from larger pushes than an ideal drive, because
   partial duty doesn't brake the wheels.
 - Larger wheels and a higher battery both raise the push it survives:
-  2.06 N with 100 mm wheels and the battery 16 cm up, versus 1.03 N with
+  2.02 N with 100 mm wheels and the battery 16 cm up, versus 1.03 N with
   65 mm wheels and the battery at 4 cm.
 - Peak motor current in these pushes stays under the TB6612's 1.2 A rating.
+- **Backlash** doesn't knock it over at 0.5–6° of play, but standing still it
+  turns into a rattle: with 6° the robot rocks about ±0.8° at ~3 Hz, the duty
+  slams to the limit every swing and the motors draw 0.43 A rms doing nothing.
+  At 1.5° the wobble is 0.16° rms. A controller with a dead-band or backlash
+  compensation would be the fix if the real gearbox rattles.
+- **Robustness (200 randomized robots, controller designed for the nominal one):**
+  every one balances from a 3° start (masses ±15 %, CoM ±2 cm, motor constants
+  ±25 %, rotor inertia ×0.5–2, backlash 0.5–3°, tyre grip 0.6–1.2, gyro bias
+  and calibration error, noise ×0.5–2, 0–2 ticks of extra delay). With 1 N
+  pushes only 50 % recover at DUTY_LIMIT 50 %, against 97 % at 100 %: the
+  failures are robots whose motor is weaker or whose rotor is heavier than
+  assumed, running out of torque. So the balancing firmware should raise
+  DUTY_LIMIT (a register write while disarmed) rather than run at the 50 %
+  bring-up default.
 
 ## Wheel-legged robot
 

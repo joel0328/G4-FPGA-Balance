@@ -21,6 +21,7 @@ class Body:
     wheel_radius: float = 0.0325     # m (65 mm wheels)
     wheel_width: float = 0.026       # m
     wheel_mass: float = 0.045        # kg each, tyre + hub
+    tyre_friction: float = 1.0       # sliding friction coefficient on the floor
     track: float = 0.17              # m, wheel centre to wheel centre
     # printed frame: a box from just below the axle up to frame_height
     frame_height: float = 0.20       # m above the axle
@@ -46,12 +47,13 @@ def build_xml(b: Body, motor: Motor, timestep=0.0005) -> str:
     m_len = hw - b.wheel_width / 2 - 0.004          # motor can runs from the centre to the wheel
     fz = (h - 0.01) / 2                             # frame box centre: from 1 cm below the axle to h
     ghost = 'contype="0" conaffinity="0"'           # mass and looks only, no collisions
+    rotor = motor.armature if motor.backlash_deg <= 0 else 0.0   # with play, sim.py integrates the rotor
     wheel = lambda side, y: f"""
       <body name="wheel_{side}" pos="0 {y:.4f} 0">
-        <joint name="wheel_{side}" type="hinge" axis="0 1 0" armature="{motor.armature:.6g}"
+        <joint name="wheel_{side}" type="hinge" axis="0 1 0" armature="{rotor:.6g}"
                frictionloss="{motor.friction:.6g}"/>
         <geom name="wheel_{side}" type="cylinder" size="{r} {b.wheel_width / 2}" euler="90 0 0"
-              mass="{b.wheel_mass}" rgba=".15 .15 .15 1" friction="1 0.005 0.0001"/>
+              mass="{b.wheel_mass}" rgba=".15 .15 .15 1" friction="{b.tyre_friction} 0.005 0.0001"/>
         <geom type="box" size="{r * 0.8} 0.001 {r * 0.12}" pos="0 {(1 if y > 0 else -1) * (b.wheel_width / 2 + 0.0005):.4f} 0"
               {ghost} mass="0" rgba=".9 .6 .1 1"/>
       </body>"""
@@ -106,7 +108,7 @@ def _inertia_about_y(model, body_id):
     return (rot @ np.diag(model.body_inertia[body_id]) @ rot.T)[1, 1]
 
 
-def plant(model):
+def plant(model, motor: Motor):
     """Mass properties the planar balance model needs, read from the compiled model."""
     ch, wl = model.body("chassis").id, model.body("wheel_l").id
     return dict(
@@ -115,6 +117,6 @@ def plant(model):
         I_b=_inertia_about_y(model, ch),             # its pitch inertia about that CoM
         m_w=model.body_mass[wl],                     # one wheel
         I_w=_inertia_about_y(model, wl),
-        J_m=model.dof_armature[model.joint("wheel_l").dofadr[0]],   # reflected rotor, one side
+        J_m=motor.armature,                          # reflected rotor, one side
         r=model.geom_size[model.geom("wheel_l").id][0],
     )
