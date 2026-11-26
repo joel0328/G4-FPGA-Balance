@@ -1,5 +1,8 @@
 # Balancer simulator (MuJoCo)
 
+Two robots: the stage 0 two-wheeled balancer (`sim.py`), and a wheel-legged
+version with a hip and knee per side (`legged_sim.py`) for later hardware.
+
 A physics model of the two-wheeled balancer for trying chassis designs and
 control algorithms before the hardware exists. It runs the controller the way
 the STM32 will: once per 1 kHz tick, on what the FPGA snapshot provides
@@ -22,13 +25,17 @@ python sim.py                   # 10 s: start tilted 3°, push 1 N forward at 1 
 python sim.py --view            # same in the 3D viewer, real time; space = push, B = push back
 python sim.py --push 1.5 --duty-limit 1.0 --set battery_height=0.16
 python sweep.py --vary battery_height=0.04,0.10,0.16 --vary wheel_radius=0.0325,0.04,0.05
+python legged_sim.py            # wheel-legged robot through its course (see below)
+python legged_sim.py --no-roll  # same with the legs not levelling the body
+python legged_sim.py --view     # drive it: arrows, PgUp/PgDn height, S stop, space/B push
 ```
 
 Each script ends with a `RESULT:` line. `sim.py` writes `out/run.png` (pitch,
 position, duty, motor current); `sweep.py` writes `out/sweep.csv`. `--set`
 overrides any field of `Body`, `Motor`, `Config` or `Sensors` by name.
 
-CI runs `check_model.py`, the default `sim.py` scenario and the sweep above on
+CI runs `check_model.py`, the default `sim.py` scenario, the `legged_sim.py`
+course and the sweep above on
 every push; the plot and sweep table are attached to each run as the
 `balancer-sim` artifact.
 
@@ -42,6 +49,9 @@ every push; the plot and sweep table are attached to each run as the
 | `sim.py` | Runs a scenario: sensor models, pushes, logging, plot, viewer |
 | `sweep.py` | Largest survivable push for each combination of one or two parameters, with the LQR redesigned for each body |
 | `check_model.py` | Self-checks |
+| `legged_robot.py` | `LegBody`: the wheel-legged robot (thigh, shank, hip and knee servos, wheel at the foot), leg kinematics, balance model at any leg length |
+| `legged_controller.py` | Gain-scheduled balance, height, roll levelling and steering, per tick, portable to C |
+| `legged_sim.py` | The wheel-legged course and keyboard driving |
 
 ## What is modelled
 
@@ -80,3 +90,38 @@ from a duty-step response, then rerun `check_model.py` and the sweeps.
   2.06 N with 100 mm wheels and the battery 16 cm up, versus 1.03 N with
   65 mm wheels and the battery at 4 cm.
 - Peak motor current in these pushes stays under the TB6612's 1.2 A rating.
+
+## Wheel-legged robot
+
+Each side has a hip and a knee (position servos with a 3 N m limit; the knee
+motor sits at the hip and drives the knee by belt) and a JGB37 wheel at the
+foot. The feet stay under the hips; the controller adds three loops to the
+balance LQR:
+
+- **Height:** both legs slew to the commanded length (9–19 cm). The LQR gain
+  and the balance pitch are scheduled over six leg lengths, since crouching
+  shortens the pendulum.
+- **Roll:** the leg-length difference keeps the body level (PI on roll from the
+  IMU, with the turn's centripetal acceleration taken out of the accelerometer),
+  or leans it into a turn like a cyclist: roll = −atan(speed × turn rate / g).
+- **Steering:** the wheel duty difference tracks the commanded yaw rate (PI on
+  the gyro's z axis).
+
+The course: start tilted 3°, push 2 N at 1 s, crouch to 10 cm, stand to 18 cm,
+drive at 0.4 m/s with the left wheel riding over a 1.5 cm plank, turn left at
+1.5 rad/s, stop. It passes when nothing falls, the body stays within 1° of level
+on the plank, the lean in the turn is within 2° of the target, the turn rate
+within 0.25 rad/s, and the height within 5 mm. It writes `out/legged.png`.
+
+Results (same assumed motor constants as above, 100 mm wheels, 1.7 kg):
+
+| | Roll on the plank | Lean in the turn |
+|---|---|---|
+| Legs level the body | 0.7° | −5.0° (target −3.5°) |
+| `--no-roll` | 3.3° | 0.0° |
+
+Height tracks to within 1 mm while balancing. Peak wheel current is 1.6 A at
+the plank edges (above the TB6612's 1.2 A continuous, under its 3.2 A peak);
+peak joint torque is 2.7 N m. A sharp bump (shorter than about 0.1 s under the
+wheel) is not absorbed: the levelling loop is too slow for it, and absorbing
+bumps needs compliant legs (impedance control), which isn't modelled yet.

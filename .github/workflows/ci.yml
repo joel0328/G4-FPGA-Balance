@@ -39,6 +39,8 @@ jobs:
         run: python check_model.py
       - name: Balance and push scenario
         run: python sim.py
+      - name: Wheel-legged course
+        run: python legged_sim.py
       - name: Design sweep
         run: python sweep.py --vary battery_height=0.04,0.10,0.16 --vary wheel_radius=0.0325,0.04,0.05
       - uses: actions/upload-artifact@v4
@@ -47,6 +49,7 @@ jobs:
           name: balancer-sim
           path: |
             model/out/run.png
+            model/out/legged.png
             model/out/sweep.csv
 
   firmware:

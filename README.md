@@ -83,7 +83,7 @@ solid = init error).
 | [Safety layer](docs/safety.md) | Arming, watchdog, faults, snapshot |
 | [Motors](docs/motors.md) | PWM, encoders, motor hardware, console commands |
 | [Firmware](firmware/FPGA_Link/README.md) | Building and importing the STM32CubeIDE project |
-| [Simulator](model/README.md) | MuJoCo model of the balancer for chassis design and controller tuning |
+| [Simulator](model/README.md) | MuJoCo models of the balancer and a wheel-legged version, for chassis design and controller tuning |
 
 ## Repository layout
 
